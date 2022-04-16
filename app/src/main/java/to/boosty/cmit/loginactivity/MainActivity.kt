@@ -9,6 +9,7 @@ import android.util.Log
 import android.widget.TextView
 import android.widget.Toast
 import android.widget.Toast.LENGTH_SHORT
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 
 class MainActivity : AppCompatActivity() {
@@ -43,21 +44,16 @@ class MainActivity : AppCompatActivity() {
     fun getUserFN() {
         Log.d("TAG", "getUserFN start")
         val intent = Intent(this, LoginActivity::class.java)
-        startActivityForResult(intent, code)
+        getResult.launch(intent)
     }
 
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-        Log.d("TAG", "onActivityResult start")
-        if (requestCode == code) {
-            if (resultCode == RESULT_OK) {
-                val fullUserName = data?.getStringExtra(FULLUSERNAME)
-                saveFUN(fullUserName!!)
-                tvFN.text = ("Hi, $fullUserName")
-            } else {
-                Toast.makeText(this, "User not found!", LENGTH_SHORT).show()
-                getUserFN()
-            }
+    private val getResult = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) {
+        if (it.resultCode == Activity.RESULT_OK) {
+            val fullUserName = it.data?.getStringExtra(FULLUSERNAME)
+            saveFUN(fullUserName!!)
+            tvFN.text = ("Hi, $fullUserName")
         }
     }
 
