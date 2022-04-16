@@ -1,83 +1,71 @@
 package to.boosty.cmit.loginactivity
 
-import androidx.appcompat.app.AppCompatActivity
-import android.os.Bundle
-import android.view.View
-import android.widget.Button
-import android.widget.EditText
-import androidx.core.content.ContextCompat
+import android.annotation.SuppressLint
+import android.app.Activity
 import android.content.Intent
+import android.content.SharedPreferences
+import android.os.Bundle
 import android.util.Log
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import java.io.BufferedReader
-import java.io.InputStreamReader
-import java.io.OutputStreamWriter
-import java.lang.StringBuilder
-import java.net.HttpURLConnection
-import java.net.URL
-import java.net.URLEncoder
-import java.net.URLEncoder.*
+import android.widget.TextView
+import android.widget.Toast
+import android.widget.Toast.LENGTH_SHORT
+import androidx.appcompat.app.AppCompatActivity
 
 class MainActivity : AppCompatActivity() {
 
-    lateinit var etLogin: EditText
-    lateinit var etPassword: EditText
-    lateinit var btSubmit: Button
-    private lateinit var login: String
-    private lateinit var pass: String
-    private lateinit var url_link: String
+    private lateinit var tvFN: TextView
+    private lateinit var shPref: SharedPreferences
+    val MY_PREF = "LOGINPASSAPP_PREFERENCES_FILE"
+    var FULLUSERNAME = ""
+    private val code = 0
+    //val fullUserName = ""
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        Log.d("TAG", "onCreate start")
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        etLogin = findViewById(R.id.etLogin)
-        etPassword = findViewById(R.id.etPass)
-        btSubmit = findViewById(R.id.btSubmit)
+        tvFN = findViewById(R.id.tvViewFN)
 
-        url_link = "http://f0660148.xsph.ru/profile.php"
+        val fullUserName = loadUserFN()
+        if (fullUserName == null) getUserFN()
+        else tvFN.text = "Hi, $fullUserName"
+    }
 
-        btSubmit.setOnClickListener {
-            CoroutineScope(Dispatchers.IO).launch {
-                runCatching {
-                    doUrl(url_link)
-                }.onSuccess { result ->
-                    withContext(Dispatchers.Main) {
-                        val sb = StringBuilder()
-                        val line = result.readLine()
-                        sb.append(line)
-                        MyIntent(sb.toString())
-                    }
-                }.onFailure { t ->
-                    MyIntent("$t")
-                }
+    fun loadUserFN(): String? {
+        Log.d("TAG", "loadUserFN start")
+        shPref = getApplicationContext().getSharedPreferences(MY_PREF, MODE_PRIVATE)
+        val fullUserName = shPref.getString(FULLUSERNAME, "")
+        return if (fullUserName?.isEmpty() == true) null
+        else fullUserName
+    }
 
+    fun getUserFN() {
+        Log.d("TAG", "getUserFN start")
+        val intent = Intent(this, LoginActivity::class.java)
+        startActivityForResult(intent, code)
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        Log.d("TAG", "onActivityResult start")
+        if (requestCode == code) {
+            if (resultCode == RESULT_OK) {
+                val fullUserName = data?.getStringExtra(FULLUSERNAME)
+                saveFUN(fullUserName!!)
+                tvFN.text = ("Hi, $fullUserName")
+            } else {
+                Toast.makeText(this, "User not found!", LENGTH_SHORT).show()
+                getUserFN()
             }
-
         }
     }
 
-    private fun doUrl(url_link: String): BufferedReader {
-        val t = URL(url_link)
-        login = etLogin.text.toString()
-        pass = etPassword.text.toString()
-        val data: String =
-            encode("login", "UTF-8") + "=" + encode(login, "UTF-8") + "&" + encode("password",
-                "UTF-8") + "=" + encode(pass, "UTF-8")
-        val conn = t.openConnection()
-        conn.doOutput = true
-        val writer = OutputStreamWriter(conn.getOutputStream())
-        writer.write(data)
-        writer.flush()
-        return BufferedReader(InputStreamReader(conn.getInputStream()))
-    }
-
-    fun MyIntent(mes: String) {
-        val intent = Intent(this, ViewActivity::class.java)
-        intent.putExtra("full_name", mes)
-        startActivity(intent)
+    private fun saveFUN(data: String) {
+        Log.d("TAG", "saveFUN start")
+        shPref = getApplicationContext().getSharedPreferences(MY_PREF, MODE_PRIVATE)
+        val edit: SharedPreferences.Editor = shPref.edit()
+        edit.putString(FULLUSERNAME, data)
+        edit.apply()
     }
 }
