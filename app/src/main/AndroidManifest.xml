@@ -7,6 +7,7 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
     <application
+        android:requestLegacyExternalStorage="true"
         android:usesCleartextTraffic="true"
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
@@ -24,6 +25,15 @@
             </intent-filter>
         </activity>
         <activity android:name=".LoginActivity"/>
+        <provider
+            android:authorities="to.boosty.cmit.loginactivity.fileprovider"
+            android:name="androidx.core.content.FileProvider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/files"/>
+        </provider>
     </application>
 
 </manifest>
