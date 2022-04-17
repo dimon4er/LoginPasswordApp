@@ -5,12 +5,17 @@ import android.app.Activity
 import android.content.Intent
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
+import android.graphics.Bitmap
 import android.graphics.Point
+import android.os.Build
 import android.os.Bundle
 import android.provider.ContactsContract
 import android.provider.MediaStore
+import android.util.DisplayMetrics
 import android.util.Log
 import android.view.View
+import android.view.WindowManager
+import android.view.WindowMetrics
 import android.widget.*
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
@@ -49,21 +54,22 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
         } else {
             tvFN.text = "Hi, $fullUserName"
             btSendMessage.setOnClickListener (this)
+            btGetContact = findViewById(R.id.btGetContact)
 
             intentGetContact = Intent(Intent.ACTION_PICK, ContactsContract.Contacts.CONTENT_URI)
-            val packageManager: PackageManager = this.getPackageManager()
-            if (packageManager.resolveActivity(intentGetContact, 0) == null) { //packageManager.MATCH_DEFAULT_ONLY))
-                btGetContact.isEnabled = false
-            } else {
-                btGetContact = findViewById(R.id.btGetContact)
+            val packageManager: PackageManager = this.packageManager
+            //if (packageManager.resolveActivity(intentGetContact, 0) == null) { //packageManager.MATCH_DEFAULT_ONLY))
+                //btGetContact.isEnabled = true
                 btGetContact.setOnClickListener(this)
-            }
+            //} else {
+                //btGetContact.setOnClickListener(this)
+            //}
             ivPhoto = findViewById(R.id.ivMyPhoto)
             ibPhoto = findViewById(R.id.ibPhoto)
             intentGetPhoto = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
             val photoFileName = getPhotoFileName ()
             selfPhotoFile = getPhotoFile (photoFileName)
-            val canTakePhoto = intentGetPhoto.resolveActivity(packageManager) != null
+            val canTakePhoto = true //intentGetPhoto.resolveActivity(packageManager) != null
             ibPhoto.isEnabled = canTakePhoto
             if (canTakePhoto) {
                 val uri = FileProvider.getUriForFile(this, "to.boosty.cmit.loginactivity.fileprovider", selfPhotoFile)
@@ -86,6 +92,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
 
     override fun onClick (view: View) {
         if (view.id == btSendMessage.id){
+            Log.d("TAG", "Msg start")
             val intent = Intent(Intent.ACTION_SEND)
             intent.type = "text/plain"
             intent.putExtra(Intent.EXTRA_TEXT, "Hello, Dear dear!")
@@ -93,6 +100,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
             val intentChooser = Intent.createChooser(intent, "SendMsg")
             startActivity(intentChooser)
         } else if  (view.id == btGetContact.id){
+            Log.d("TAG", "Contact start")
             getCommonIntentResult.launch(intentGetContact)
         } else if (view.id == ibPhoto.id) {
             Log.d("TAG", "Photo start")
@@ -155,9 +163,18 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
             Log.d("TAG", "ERROR File exists")
         } else {
             val size = Point()
-            Log.d("TAG", "updateSelfPhotoImageView Start")
-            this.windowManager.defaultDisplay.getSize(size) //TODO: deprecated
-            val bitmap = PhotosUtils().getScaledBitmap(photoFile.path, size.x, size.y)
+
+            val bitmap = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                Log.d("TAG", "SDK 1")
+                this.display?.getSize(size)
+                val height = this.getSystemService(WindowManager::class.java).currentWindowMetrics.bounds.height()
+                val width = this.getSystemService(WindowManager::class.java).currentWindowMetrics.bounds.width()
+                PhotosUtils().getScaledBitmap(photoFile.path, width, height)
+            } else {
+                Log.d("TAG", "SDK 2")
+                this.windowManager.defaultDisplay.getSize(size)
+                PhotosUtils().getScaledBitmap(photoFile.path, size.x, size.y)
+            }
             ivPhoto.setImageBitmap(bitmap)
         }
     }
@@ -172,4 +189,5 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
             Log.d("TAG", "getPhotoResult ERROR")
         }
     }
+
 }
